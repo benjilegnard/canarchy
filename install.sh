@@ -46,6 +46,46 @@ sudo cp ./config/greetd/sway-config /etc/greetd/
 #sudo cp ./config/greetd/wlgreet.toml /etc/greetd/
 sudo systemctl enable greetd.service
 
+
+# --------------
+# fht-compositor
+# --------------
+# - [x] installation fht-compositor : https://nferhat.github.io/fht-compositor/
+# build dependencies
+packageInstall "clang mesa wayland udev seatd uwsm libdisplay-info libxkbcommon libinput libdrm pipewire dbus"
+# Recommended and deps
+packageInstall "gtklock grim slurp wl-clipboard libnewt libnotify"
+
+# Clone
+if [ -d ./temp/fht-compositor ]; then
+    logInfo "fht-compositor already cloned, skipping..."
+else
+    git clone https://github.com/nferhat/fht-compositor/ temp/fht-compositor
+    logSuccess "Cloned fht-compositor to ${CWD}/temp/fht-compositor/"
+fi
+
+# Build
+
+if [ -f /usr/local/bin/fht-compositor ]; then
+    logInfo "fht-compositor already installed, skipping..."
+else
+    logInfo "Compiling fht-compositor"
+    cd temp/fht-compositor
+    cargo build --profile opt --features systemd
+    # You can copy it to /usr/local/bin or ~/.local/bin, make sure its in $PATH though!
+    sudo cp target/opt/fht-compositor /usr/local/bin/
+
+    # Wayland session desktop files
+    sudo mkdir -p /usr/share/wayland-sessions
+    sudo install -Dm755 res/systemd/fht-compositor-session         -t /usr/local/bin/
+    sudo install -Dm644 res/systemd/fht-compositor.desktop         -t /usr/share/wayland-sessions
+    sudo install -Dm644 res/systemd/fht-compositor.service         -t /etc/systemd/user
+    sudo install -Dm644 res/systemd/fht-compositor-shutdown.target -t /etc/systemd/user
+    cd -
+    logSuccess "fht-compositor Successfully installed !"
+fi
+
+
 # ---------
 # alacritty
 # ---------
@@ -115,6 +155,34 @@ else
     mkdir -p ~/.tmux/plugins/
     git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 fi
+
+# ---
+# eww
+# ---
+# eww dynamic lib dependencies
+packageInstall "gtk3 gtk-layer-shell pango cairo glib2 libdbusmenu-gtk3 gdk-pixbuf2 gcc-libs glibc"
+# clone build
+if [ -d ./temp/eww ];then
+    logInfo "eww 🤮 already cloned, skipping..."
+else
+    git clone https://github.com/elkowar/eww temp/eww
+    logSuccess "eww 🤮 cloned successfully"
+fi
+
+
+if commandExists "eww"; then
+    logInfo "eww 🤮 already installed, skipping..."
+else
+    cd ./temp/eww
+    cargo build --release --no-default-features --features=wayland
+    chmod +x target/release/eww
+    sudo cp target/release/eww /usr/local/bin/
+    cd -
+fi
+
+mkdir -p ~/.config/eww
+
+cp -r ./config/eww ~/.config/
 
 # - [ ] mako : https://github.com/emersion/mako
 
